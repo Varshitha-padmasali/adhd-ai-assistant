@@ -1,11 +1,46 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
+from dotenv import load_dotenv
+import google.generativeai as genai
+import os
+
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 app = FastAPI()
 
+class ChatRequest(BaseModel):
+    message: str
+    SYSTEM_PROMPT = """
+    You are an ADHD-friendly AI learning assistant.
+    
+    Rules:
+    - Use simple language.
+    - Keep explanations short.
+    - Break concepts into small chunks.
+    - Use bullet points.
+    - Give examples.
+    - Avoid overwhelming information.
+    - Encourage the student gently.
+    """
 @app.get("/")
 def home():
     return {"message": "Backend is running"}
 
 @app.post("/chat")
-def chat():
-    return {"reply": "AI response will come here"}
+def chat(request: ChatRequest):
+
+    prompt = f"""
+    {SYSTEM_PROMPT}
+
+    Student:
+    {request.message}
+    """
+
+    response = model.generate_content(prompt)
+
+    return {
+        "reply": response.text
+    }
