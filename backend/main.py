@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 import google.generativeai as genai
 import os
-from typing import List
+from typing import List, Literal
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -20,8 +20,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
 class ChatRequest(BaseModel):
-    message: str
+    messages: List[ChatMessage]
+
 SYSTEM_PROMPT = """
 You are an ADHD-friendly AI learning assistant.
     
@@ -40,12 +45,18 @@ def home():
 
 @app.post("/chat")
 def chat(request: ChatRequest):
+    conversation = "\n".join(
+        f"{'Student' if message.role == 'user' else 'Assistant'}: {message.content}"
+        for message in request.messages
+    )
 
     prompt = f"""
     {SYSTEM_PROMPT}
 
-    Student:
-    {request.message}
+    Conversation so far:
+    {conversation}
+
+    Continue the conversation as the assistant.
     """
 
     response = model.generate_content(prompt)

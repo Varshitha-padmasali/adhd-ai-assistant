@@ -4,9 +4,14 @@ import { useState } from "react"
 import MessageBubble from "./MessageBubble"
 import ChatInput from "./ChatInput"
 
+type ChatMessage = {
+  role: "user" | "assistant"
+  content: string
+}
+
 export default function ChatBox() {
 
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<ChatMessage[]>([
       {
           role: "assistant",
           content: "Hi! I am your AI ADHD learning assistant."
@@ -65,7 +70,7 @@ export default function ChatBox() {
         {messages.map((message, index) => (
     <MessageBubble
         key={index}
-        role={message.role as "user" | "assistant"}
+        role={message.role}
         content={message.content}
     />
 ))}
