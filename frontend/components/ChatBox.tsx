@@ -14,19 +14,53 @@ type ChatResponse = {
   detail?: string
 }
 
+const STORAGE_KEY = "adhd-ai-assistant-chat-history"
 const ERROR_MESSAGE =
   "Sorry, I had trouble getting a response. Please try again."
+const INITIAL_MESSAGES: ChatMessage[] = [
+  {
+    role: "assistant",
+    content: "Hi! I am your AI ADHD learning assistant."
+  }
+]
+
+function isChatMessage(message: unknown): message is ChatMessage {
+  if (!message || typeof message !== "object") return false
+
+  const maybeMessage = message as Partial<ChatMessage>
+
+  return (
+    (maybeMessage.role === "user" || maybeMessage.role === "assistant") &&
+    typeof maybeMessage.content === "string"
+  )
+}
+
+function getInitialMessages() {
+  if (typeof window === "undefined") return INITIAL_MESSAGES
+
+  try {
+    const savedMessages = window.localStorage.getItem(STORAGE_KEY)
+    const parsedMessages = savedMessages ? JSON.parse(savedMessages) : null
+
+    if (Array.isArray(parsedMessages) && parsedMessages.every(isChatMessage)) {
+      return parsedMessages
+    }
+  } catch {
+    window.localStorage.removeItem(STORAGE_KEY)
+  }
+
+  return INITIAL_MESSAGES
+}
 
 export default function ChatBox() {
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
-      {
-          role: "assistant",
-          content: "Hi! I am your AI ADHD learning assistant."
-      }
-  ])
+  const [messages, setMessages] = useState<ChatMessage[]>(getInitialMessages)
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+  }, [messages])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
