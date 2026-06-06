@@ -14,13 +14,15 @@ export default function ChatBox() {
   ])
   const handleSend = async (message: string) => {
 
-    setMessages((prev) => [
-        ...prev,
+    const updatedMessages = [
+        ...messages,
         {
-            role: "user",
-            content: message
+          role: "user",
+          content: message
         }
-    ])
+      ]
+      
+      setMessages(updatedMessages)
 
     const response = await fetch(
         "http://localhost:8000/chat",
@@ -30,7 +32,7 @@ export default function ChatBox() {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                message,
+                messages: updatedMessages,
             }),
         }
     )
