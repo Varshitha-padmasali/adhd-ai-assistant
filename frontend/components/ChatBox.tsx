@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import MessageBubble from "./MessageBubble"
 import ChatInput from "./ChatInput"
 
@@ -18,6 +18,11 @@ export default function ChatBox() {
       }
   ])
   const [isLoading, setIsLoading] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages, isLoading])
 
   const handleSend = async (message: string) => {
     if (isLoading) return
@@ -80,6 +85,7 @@ export default function ChatBox() {
             content="Thinking..."
           />
         )}
+        <div ref={messagesEndRef} />
         </div>
   
         <div className="p-4 border-t">
