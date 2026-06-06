@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import google.generativeai as genai
 import os
-from typing import List, Literal
+from typing import List
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -20,12 +20,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class ChatMessage(BaseModel):
-    role: Literal["user", "assistant"]
-    content: str
-
 class ChatRequest(BaseModel):
-    messages: List[ChatMessage]
+    message: str
 
 SYSTEM_PROMPT = """
 You are an ADHD-friendly AI learning assistant.
@@ -45,52 +41,15 @@ def home():
 
 @app.post("/chat")
 def chat(request: ChatRequest):
-    if not GEMINI_API_KEY:
-        raise HTTPException(
-            status_code=500,
-            detail="Gemini API key is not configured.",
-        )
-
-    if not request.messages:
-        raise HTTPException(
-            status_code=400,
-            detail="At least one message is required.",
-        )
-
-    conversation = "\n".join(
-        f"{'Student' if message.role == 'user' else 'Assistant'}: {message.content}"
-        for message in request.messages
-        if message.content.strip()
-    )
-
-    if not conversation:
-        raise HTTPException(
-            status_code=400,
-            detail="Message content cannot be empty.",
-        )
 
     prompt = f"""
     {SYSTEM_PROMPT}
 
-    Conversation so far:
-    {conversation}
-
-    Continue the conversation as the assistant.
+    Student:
+    {request.message}
     """
 
-    try:
-        response = model.generate_content(prompt)
-    except Exception as error:
-        raise HTTPException(
-            status_code=502,
-            detail="Unable to get a response from Gemini right now.",
-        ) from error
-
-    if not response.text:
-        raise HTTPException(
-            status_code=502,
-            detail="Gemini returned an empty response.",
-        )
+    response = model.generate_content(prompt)
 
     return {
         "reply": response.text
