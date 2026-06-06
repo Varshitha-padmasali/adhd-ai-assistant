@@ -9,6 +9,14 @@ type ChatMessage = {
   content: string
 }
 
+type ChatResponse = {
+  reply?: string
+  detail?: string
+}
+
+const ERROR_MESSAGE =
+  "Sorry, I had trouble getting a response. Please try again."
+
 export default function ChatBox() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -52,13 +60,29 @@ export default function ChatBox() {
           }
       )
 
-      const data = await response.json()
+      const data = await response.json().catch((): ChatResponse => ({}))
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Chat request failed")
+      }
+
+      if (!data.reply) {
+        throw new Error("Chat response did not include a reply")
+      }
 
       setMessages((prev) => [
           ...prev,
           {
               role: "assistant",
               content: data.reply,
+          },
+      ])
+    } catch {
+      setMessages((prev) => [
+          ...prev,
+          {
+              role: "assistant",
+              content: ERROR_MESSAGE,
           },
       ])
     } finally {

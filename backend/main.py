@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -45,10 +45,29 @@ def home():
 
 @app.post("/chat")
 def chat(request: ChatRequest):
+    if not GEMINI_API_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="Gemini API key is not configured.",
+        )
+
+    if not request.messages:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one message is required.",
+        )
+
     conversation = "\n".join(
         f"{'Student' if message.role == 'user' else 'Assistant'}: {message.content}"
         for message in request.messages
+        if message.content.strip()
     )
+
+    if not conversation:
+        raise HTTPException(
+            status_code=400,
+            detail="Message content cannot be empty.",
+        )
 
     prompt = f"""
     {SYSTEM_PROMPT}
@@ -59,7 +78,19 @@ def chat(request: ChatRequest):
     Continue the conversation as the assistant.
     """
 
-    response = model.generate_content(prompt)
+    try:
+        response = model.generate_content(prompt)
+    except Exception as error:
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to get a response from Gemini right now.",
+        ) from error
+
+    if not response.text:
+        raise HTTPException(
+            status_code=502,
+            detail="Gemini returned an empty response.",
+        )
 
     return {
         "reply": response.text
