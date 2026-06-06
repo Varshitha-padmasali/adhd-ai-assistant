@@ -12,7 +12,10 @@ export default function ChatBox() {
           content: "Hi! I am your AI ADHD learning assistant."
       }
   ])
+  const [isLoading, setIsLoading] = useState(false)
+
   const handleSend = async (message: string) => {
+    if (isLoading) return
 
     const updatedMessages = [
         ...messages,
@@ -23,29 +26,34 @@ export default function ChatBox() {
       ]
       
       setMessages(updatedMessages)
+      setIsLoading(true)
 
-    const response = await fetch(
-        "http://localhost:8000/chat",
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                messages: updatedMessages,
-            }),
-        }
-    )
+    try {
+      const response = await fetch(
+          "http://localhost:8000/chat",
+          {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                  messages: updatedMessages,
+              }),
+          }
+      )
 
-    const data = await response.json()
+      const data = await response.json()
 
-    setMessages((prev) => [
-        ...prev,
-        {
-            role: "assistant",
-            content: data.reply,
-        },
-    ])
+      setMessages((prev) => [
+          ...prev,
+          {
+              role: "assistant",
+              content: data.reply,
+          },
+      ])
+    } finally {
+      setIsLoading(false)
+    }
 }
     return (
       <div className="w-full max-w-3xl h-[80vh] bg-white rounded-2xl shadow-lg flex flex-col">
@@ -61,10 +69,16 @@ export default function ChatBox() {
         content={message.content}
     />
 ))}
+        {isLoading && (
+          <MessageBubble
+            role="assistant"
+            content="Thinking..."
+          />
+        )}
         </div>
   
         <div className="p-4 border-t">
-          <ChatInput onSend={handleSend} />
+          <ChatInput onSend={handleSend} disabled={isLoading} />
         </div>
       </div>
     )
